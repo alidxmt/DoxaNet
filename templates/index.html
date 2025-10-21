@@ -164,6 +164,7 @@ let rectangles = [];
 let activeRects = new Set();
 let selectedProp = null;
 let nProps = 0;
+let isAnimating = false;
 
 // Initialize original rectangle
 function initOriginalRect() {
@@ -294,18 +295,27 @@ function splitRectangles(rects) {
 
 // Animate multiple splits
 function animateNSplits(n) {
-  rectangles = [ { ...originalRect } ];
+  if (isAnimating) return;
+  isAnimating = true;
+
+  rectangles = [{ ...originalRect }];
   let step = 0;
+
   function nextStep() {
-    if (step >= n) return;
+    if (step >= n) {
+      isAnimating = false;  // ✅ release after done
+      return;
+    }
     rectangles = splitRectangles(rectangles);
     draw(rectangles, true);
     step++;
     setTimeout(nextStep, 400);
   }
+
   draw([originalRect], true);
   setTimeout(nextStep, 400);
 }
+
 
 // Update logical label
 function updateLabel() {
@@ -395,10 +405,12 @@ document.getElementById('prop-select').addEventListener('change', e => {
 });
 
 window.addEventListener('resize', () => {
+  if (isAnimating) return; // ✅ ignore resize while animating
   initOriginalRect();
   if (nProps > 0) animateNSplits(nProps);
   else draw([originalRect], true);
 });
+
 
 
 document.getElementById('consider-exp').addEventListener('click', () => {
