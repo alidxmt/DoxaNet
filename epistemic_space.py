@@ -105,3 +105,32 @@ class EpistemicSpace:
         # Initial state
         update_highlight({"new": "None"})
 
+    def visualize_figure(self):
+        n = self.n_possibilities
+        grid_cols = math.ceil(math.sqrt(n))
+        grid_rows = math.ceil(n / grid_cols)
+        x, y = [], []
+        for i in range(n):
+            row = i // grid_cols
+            col = i % grid_cols
+            x.append(col)
+            y.append(row)
+
+        fig = go.Figure(
+            data=go.Scatter(
+                x=x,
+                y=y,
+                mode='markers+text',
+                marker=dict(size=10, color='lightblue', line=dict(width=1, color='darkblue')),
+                text=[self.get_possibility_bitstring(i) for i in range(n)],
+                textposition="bottom center"
+            )
+        )
+        fig.update_layout(
+            title=f"Epistemic Space ({self.n_props} propositions, {n} possibilities)",
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="y"),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, autorange='reversed'),
+            width=600,
+            height=600
+        )
+        return fig

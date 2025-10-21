@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>√2 Rectangle Split Dark Animated with IDs</title>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: sans-serif;
+  background-color: #121212;
+  color: #eee;
+}
+
+/* Top panel container */
+#top-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #1e1e1e;
+  padding: 20px 25px;
+}
+
+/* Logical label below */
+#logical-label {
+  display: none;
+  margin: 0;
+  font-size: 8px;
+}
+
+/* Row container inside top panel */
+.top-panel-row {
+  display: flex;
+  align-items: center; /* vertically center all items */
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Unified style for buttons, selects, and inputs */
+.top-control {
+  font-family: inherit;
+  font-size: 16px;
+  padding: 6px 12px;
+  height: 36px;          /* uniform height */
+  border-radius: 5px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: #eee;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* Inputs with text editing */
+input.top-control {
+  background-color: #222;
+  cursor: text;
+}
+
+/* Hover effect for buttons */
+button.top-control:hover {
+  background-color: #555;
+}
+
+/* SVG canvas */
+#canvas {
+  flex-grow: 1;
+  width: 100%;
+  background-color: #121212;
+}
+
+/* Text inside SVG rectangles */
+text {
+  fill: #fcfcfc;
+  font-size: 8px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Logic buttons inside popup */
+.logic-btn {
+  background: #333; 
+  color: #eee;
+  border: 1px solid #555;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.logic-btn:hover {
+  background: #555;
+}
+
+/* Hidden by default */
+#prop-select, #propsel {
+  display: none;
+}
+/* Widths for specific controls */
+#num-input {
+  width: 120px;  /* smaller input for number of propositions */
+}
+#logic-input {
+  width: 720px;  /* bigger input for logical expression */
+}
+
+</style>
+
+</head>
+<body>
+<div id="top-panel">
+  <!-- First row: propositions + split -->
+  <div class="top-panel-row">
+    <!-- <label for="num-input" class="top-control" style="background:none; border:none; padding:0;">Propositions:</label> -->
+    <input type="number" id="num-input" class="top-control" value="0" min="0">
+    <button id="split-btn" class="top-control">Enter the number of possibilities</button>
+
+    <label id="propsel" for="prop-select" class="top-control" style="background:none; border:none; padding:0;">Select Proposition:</label>
+    <select id="prop-select" class="top-control"></select>
+  </div>
+
+  <!-- Second row: logic input + popup + buttons -->
+  <div class="top-panel-row" style="position: relative;">
+    <input id="logic-input" type="text" placeholder="Enter logical expression..." class="top-control">
+    
+    <button id="consider-exp" class="top-control">Enter a logical expression</button>
+
+    <!-- Logic popup -->
+    <div id="logic-popup" 
+         style="display:none; position:absolute; top:40px; left:0; background:#1e1e1e; border:1px solid #444; border-radius:10px; padding:10px; z-index:10;">
+      <div style="display:flex; flex-wrap:wrap; gap:5px;">
+        <button class="logic-btn">¬</button>
+        <button class="logic-btn">∩</button>
+        <button class="logic-btn">∪</button>
+        <button class="logic-btn">(</button>
+        <button class="logic-btn">)</button>
+      </div>
+      <div id="prop-btns" style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- Logical label -->
+  <div style="width: 100%; margin-top: 5px;">
+    <span id="logical-label"></span>
+  </div>
+</div>
+
+
+<svg id="canvas"></svg>
+
+<script>
+const svg = document.getElementById('canvas');
+const ratio = Math.SQRT2;
+const paddingRatio = 0.2;
+
+let originalRect = {};
+let rectangles = [];
+let activeRects = new Set();
+let selectedProp = null;
+let nProps = 0;
+
+// Initialize original rectangle
+function initOriginalRect() {
+  const w = svg.clientWidth * (1 - 3 * paddingRatio);
+  const h = w / ratio;
+  const x = (svg.clientWidth - w) / 2;
+  const y = (svg.clientHeight - h) / 2;
+  originalRect = { x, y, width: w, height: h, id: "" };
+}
+
+// Initialize proposition dropdown
+function initPropositionDropdown(n) {
+  const select = document.getElementById('prop-select');
+  select.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.innerHTML = `B<sub>${i + 1}</sub>`;
+    select.appendChild(option);
+  }
+  selectedProp = null;
+}
+
+// Draw rectangles
+function draw(rects, animate = true) {
+  svg.innerHTML = '';
+  const rectcolor = "rgba(240,60,0,0.6)";
+  const hovercolor = "rgba(255,140,0,0.9)";
+  const activecolor = "rgba(255,140,0,0.9)";
+
+  rects.forEach(rect => {
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", rect.x);
+    r.setAttribute("y", rect.y);
+    r.setAttribute("width", rect.width);
+    r.setAttribute("height", rect.height);
+    r.setAttribute("fill", rectcolor);
+    r.setAttribute("stroke", "#121212");
+    r.setAttribute("stroke-width", "3");
+    r.dataset.id = rect.id;
+    svg.appendChild(r);
+
+    // Add text (decimal always visible)
+    const decimal = rect.id ? parseInt(rect.id, 2) : 0;
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.textContent = decimal;
+    text.setAttribute("x", rect.x + rect.width / 2);
+    text.setAttribute("y", rect.y + rect.height / 2);
+    svg.appendChild(text);
+
+    // Corner radius animation or instant
+    const targetRx = rect.width * 0.15;
+    const targetRy = rect.height * 0.15;
+    if (animate) {
+      let start = null;
+      const duration = 400;
+      function anim(time) {
+        if (!start) start = time;
+        const progress = Math.min((time - start) / duration, 1);
+        r.setAttribute("rx", targetRx * progress);
+        r.setAttribute("ry", targetRy * progress);
+        if (progress < 1) requestAnimationFrame(anim);
+      }
+      requestAnimationFrame(anim);
+    } else {
+      r.setAttribute("rx", targetRx);
+      r.setAttribute("ry", targetRy);
+    }
+
+    // Highlight selected proposition
+    if (selectedProp !== null && rect.id[selectedProp] === "1") {
+      r.setAttribute("fill", hovercolor);
+    }
+    // Highlight active
+    if (activeRects.has(rect.id)) {
+      r.setAttribute("fill", activecolor);
+    }
+
+    // Hover: switch label with fade
+    r.addEventListener('mouseenter', () => {
+      if (!activeRects.has(rect.id)) r.setAttribute("fill", hovercolor);
+      text.style.opacity = 0;
+      setTimeout(() => {
+        text.textContent = rect.id || "0";
+        text.style.opacity = 1;
+      }, 150);
+    });
+
+    r.addEventListener('mouseleave', () => {
+      if (!activeRects.has(rect.id)) {
+        r.setAttribute("fill",
+          selectedProp !== null && rect.id[selectedProp] === "1" ? hovercolor : rectcolor
+        );
+      }
+      text.style.opacity = 0;
+      setTimeout(() => {
+        text.textContent = decimal;
+        text.style.opacity = 1;
+      }, 150);
+    });
+
+    // Click toggles active
+    r.addEventListener('click', () => {
+      if (activeRects.has(rect.id)) activeRects.delete(rect.id);
+      else activeRects.add(rect.id);
+      updateLabel();
+      draw(rectangles, false);
+    });
+  });
+}
+
+// Split rectangles
+function splitRectangles(rects) {
+  const newRects = [];
+  rects.forEach(rect => {
+    if (rect.width >= rect.height) {
+      const halfWidth = rect.width / 2;
+      newRects.push({ x: rect.x, y: rect.y, width: halfWidth, height: rect.height, id: rect.id + "0" });
+      newRects.push({ x: rect.x + halfWidth, y: rect.y, width: halfWidth, height: rect.height, id: rect.id + "1" });
+    } else {
+      const halfHeight = rect.height / 2;
+      newRects.push({ x: rect.x, y: rect.y, width: rect.width, height: halfHeight, id: rect.id + "0" });
+      newRects.push({ x: rect.x, y: rect.y + halfHeight, width: rect.width, height: halfHeight, id: rect.id + "1" });
+    }
+  });
+  return newRects;
+}
+
+// Animate multiple splits
+function animateNSplits(n) {
+  rectangles = [ { ...originalRect } ];
+  let step = 0;
+  function nextStep() {
+    if (step >= n) return;
+    rectangles = splitRectangles(rectangles);
+    draw(rectangles, true);
+    step++;
+    setTimeout(nextStep, 400);
+  }
+  draw([originalRect], true);
+  setTimeout(nextStep, 400);
+}
+
+// Update logical label
+function updateLabel() {
+  const label = document.getElementById('logical-label');
+  if (activeRects.size === 0) {
+    label.innerHTML = "";
+    return;
+  }
+  const parts = [];
+  activeRects.forEach(id => {
+    const terms = [];
+    for (let i = 0; i < id.length; i++) {
+      terms.push(id[i] === "1"
+        ? `<b>B</b><sub>${i + 1}</sub>`
+        : `¬<b>B</b><sub>${i + 1}</sub>`);
+    }
+    parts.push(`(${terms.join(" ∩ ")})`);
+  });
+  label.innerHTML = parts.join(" ∪ ");
+}
+
+// --- Popup logic (fixed placement, no duplicates) ---
+const logicInput = document.getElementById('logic-input');
+const logicPopup = document.getElementById('logic-popup');
+const propBtns = document.getElementById('prop-btns');
+
+logicInput.addEventListener('click', (e) => {
+  e.stopPropagation();
+  logicPopup.style.display = logicPopup.style.display === 'none' ? 'block' : 'none';
+});
+
+document.addEventListener('click', e => {
+  if (!logicPopup.contains(e.target) && e.target !== logicInput) {
+    logicPopup.style.display = 'none';
+  }
+});
+
+function attachLogicBtnEvents() {
+  document.querySelectorAll('.logic-btn').forEach(btn => {
+    btn.onclick = () => {
+      logicInput.value += btn.textContent;
+    };
+  });
+}
+attachLogicBtnEvents();
+// Delete button functionality
+
+
+function updatePropButtons(n) {
+  propBtns.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('button');
+    b.className = 'logic-btn';
+    b.textContent = `B${i + 1}`;
+    b.onclick = () => {
+      logicInput.value += b.textContent;
+    };
+    propBtns.appendChild(b);
+  }
+}
+
+const oldInitPropositionDropdown = initPropositionDropdown;
+initPropositionDropdown = function (n) {
+  oldInitPropositionDropdown(n);
+  updatePropButtons(n);
+};
+
+// Event listeners
+document.getElementById('split-btn').addEventListener('click', () => {
+  nProps = parseInt(document.getElementById('num-input').value);
+  if (isNaN(nProps) || nProps < 0) nProps = 0;
+
+  // CLEAR all selections
+  activeRects.clear();
+  updateLabel();
+
+  initPropositionDropdown(nProps);
+  rectangles = [ { ...originalRect } ];
+  if (nProps > 0) animateNSplits(nProps);
+  else draw([originalRect], true);
+});
+
+
+document.getElementById('prop-select').addEventListener('change', e => {
+  selectedProp = parseInt(e.target.value);
+  draw(rectangles, false);
+});
+
+window.addEventListener('resize', () => {
+  initOriginalRect();
+  if (nProps > 0) animateNSplits(nProps);
+  else draw([originalRect], true);
+});
+
+
+document.getElementById('consider-exp').addEventListener('click', () => {
+  const exprInput = logicInput.value;
+
+  if (!exprInput || nProps === 0) return;
+
+  // Clear previous active selection
+  activeRects.clear();
+
+  // Go through all rectangles and check which satisfy the expression
+  rectangles.forEach(rect => {
+    const worldBits = rect.id.split('').map(b => b === '1');
+
+    // Create a safe evaluable expression string
+    let expr = exprInput;
+    // Replace propositions B1, B2, ... with worldBits[x]
+    for (let i = 0; i < nProps; i++) {
+      const re = new RegExp(`B${i+1}`, 'g');
+      expr = expr.replace(re, `worldBits[${i}]`);
+    }
+    // Replace logical symbols
+    expr = expr.replace(/¬/g, '!').replace(/∩/g, '&&').replace(/∪/g, '||');
+
+    try {
+      // Evaluate expression
+      if (Function('worldBits', `return ${expr}`)(worldBits)) {
+        activeRects.add(rect.id);
+      }
+    } catch(e) {
+      console.error('Invalid expression', e);
+    }
+  });
+
+  // Update label and redraw rectangles
+  updateLabel();
+  draw(rectangles, false);
+});
+
+
+// Initialize
+initOriginalRect();
+initPropositionDropdown(0);
+draw([originalRect], true);
+
+
+
+</script>
+</body>
+</html>
