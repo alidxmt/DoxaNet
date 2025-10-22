@@ -109,13 +109,37 @@ text {
 #logic-input {
   width: 720px;  /* bigger input for logical expression */
 }
+.top-panel-row label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.top-panel-row input[type="radio"] {
+  cursor: pointer;
+}
+#theory-panel {
+  border: 1px solid #555;   /* 1px border */
+  border-radius: 5px;       /* rounded corners */
+  padding: 0px 0px;        /* space inside panel */
+  margin: 0px 0;            /* vertical spacing */
+  padding:5px
+}
+
+#theory-panel .top-panel-row {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
 
 </style>
 
 </head>
 <body>
 <div id="top-panel">
-  <!-- First row: propositions + split -->
+  <!-- First row: propositions + split --><!-- Replace the single button with a row of radio buttons -->
+
   <div class="top-panel-row">
     <!-- <label for="num-input" class="top-control" style="background:none; border:none; padding:0;">Propositions:</label> -->
     <input type="number" id="num-input" class="top-control" value="0" min="0">
@@ -124,12 +148,33 @@ text {
     <label id="propsel" for="prop-select" class="top-control" style="background:none; border:none; padding:0;">Select Proposition:</label>
     <select id="prop-select" class="top-control"></select>
   </div>
+  <div id="theory-panel">
+    <div class="top-panel-row" style="gap: 20px; align-items: center;">
+      <label style="cursor: pointer;">
+        <input type="radio" name="reasoning" value="belief-revision" checked>
+        Belief Revision
+      </label>
+      <label style="cursor: pointer;">
+        <input type="radio" name="reasoning" value="dempster-shafer">
+        Dempster-Shafer Theory
+      </label>
+      <label style="cursor: pointer;">
+        <input type="radio" name="reasoning" value="ranking-theory">
+        Ranking Theory
+      </label>
+      <label style="cursor: pointer;">
+        <input type="radio" name="reasoning" value="endorsement-theory">
+        Endorsement Theory
+      </label>
+    </div>
+
+
 
   <!-- Second row: logic input + popup + buttons -->
   <div class="top-panel-row" style="position: relative;">
     <input id="logic-input" type="text" placeholder="Enter logical expression..." class="top-control">
     
-    <button id="consider-exp" class="top-control">Enter a logical expression</button>
+    <button id="belief-revision" class="top-control">Belief Revision</button>
 
     <!-- Logic popup -->
     <div id="logic-popup" 
@@ -143,6 +188,7 @@ text {
       </div>
       <div id="prop-btns" style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap;"></div>
     </div>
+  </div>
   </div>
 
   <!-- Logical label -->
@@ -413,7 +459,8 @@ window.addEventListener('resize', () => {
 
 
 
-document.getElementById('consider-exp').addEventListener('click', () => {
+logicInput.addEventListener('input', () => {
+
   const exprInput = logicInput.value;
 
   if (!exprInput || nProps === 0) return;
@@ -450,6 +497,28 @@ document.getElementById('consider-exp').addEventListener('click', () => {
   draw(rectangles, false);
 });
 
+// For logical symbol buttons
+document.querySelectorAll('.logic-btn').forEach(btn => {
+  btn.onclick = () => {
+    logicInput.value += btn.textContent;
+    logicInput.dispatchEvent(new Event('input')); // trigger your handler
+  };
+});
+
+// For proposition buttons
+function updatePropButtons(n) {
+  propBtns.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('button');
+    b.className = 'logic-btn';
+    b.textContent = `B${i + 1}`;
+    b.onclick = () => {
+      logicInput.value += b.textContent;
+      logicInput.dispatchEvent(new Event('input')); // trigger your handler
+    };
+    propBtns.appendChild(b);
+  }
+}
 
 // Initialize
 initOriginalRect();

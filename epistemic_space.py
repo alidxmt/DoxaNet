@@ -1,7 +1,7 @@
+import math
 from ipywidgets import Dropdown, VBox, Output
 from IPython.display import display
 import plotly.graph_objects as go
-import math
 
 class EpistemicSpace:
     def __init__(self, n_props, proposition_texts=None):
@@ -134,3 +134,26 @@ class EpistemicSpace:
             height=600
         )
         return fig
+    
+    def sync_epistemic_space(self):
+        """
+        Ensure that the epistemic space, possibilities, and core worlds
+        are consistent with the current propositions, beliefs, core, and entrenchment.
+        """
+        # Rebuild the epistemic space
+        self.space = EpistemicSpace(len(self.propositions), self.propositions)
+
+        # Reset possibilities to all worlds
+        self.possibilities = set(range(self.space.n_possibilities))
+
+        # Filter possibilities based on current beliefs
+        for prop in self.K:
+            if prop in self.propositions:
+                idx = self.propositions.index(prop)
+                self.possibilities = {
+                    w for w in self.possibilities
+                    if self.space.get_possibility_bitstring(w)[idx] == "1"
+                }
+
+        # Ensure core worlds are consistent
+        self.core_worlds = self._compute_core_worlds()
