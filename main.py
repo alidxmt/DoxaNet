@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from belief_revision import BeliefRevision
 import json
+from typing import List
 
 app = FastAPI()
 
@@ -25,16 +26,19 @@ def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # Create a new agent
+
 @app.post("/agent/create")
-async def create_agent(name: str = Form(...), propositions: str = Form(...)):
+async def create_agent(
+    name: str = Form(...),
+    propositions: List[str] = Form(...)
+):
     try:
-        props = json.loads(propositions)
-        agent = BeliefRevision(name=name, propositions=props)
-        agent.sync_epistemic_space()  # keep consistent
+        agent = BeliefRevision(name=name, propositions=propositions)
         agents[name] = agent
-        return JSONResponse({"status": "success", "message": f"Agent '{name}' created."})
+        return {"status": "success", "message": f"Agent '{name}' created."}
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)})
+        return {"status": "error", "message": str(e)}
+
 
 # Add a proposition to an agent
 @app.post("/agent/add_proposition")
