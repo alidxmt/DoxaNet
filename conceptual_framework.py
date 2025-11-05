@@ -118,7 +118,25 @@ class ConceptualFramework:
                 raise ValueError(f"Cannot evaluate expression: {expr_str}. Error: {e}")
 
         return {"worlds": satisfying_worlds, "notation": notation}
+    # -----------------------------------------------------
+    # --- COMPLIMENT OF A GIVEN PROPOSITION ---
+    # -----------------------------------------------------
+    def get_complement(self, prop_id: int) -> int:
+        """
+        Return the complement of a proposition within this conceptual framework.
+        The complement includes all worlds *not* in the given proposition.
 
+        Example:
+            For n_worlds = 4:
+            prop_id = 3 -> 0b0011 (W0, W1)
+            complement = 0b1100 -> 12
+        """
+        # Create a mask that has 1s for all valid worlds
+        full_mask = (1 << self.n_worlds) - 1
+
+        # Flip bits within the mask
+        complement = (~prop_id) & full_mask
+        return complement
 
     # -----------------------------------------------------
     # --- WORLD VIEW METHOD ---
