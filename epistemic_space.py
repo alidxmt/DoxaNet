@@ -180,30 +180,25 @@ class EpistemicSpace:
         return result
 
 
-    def get_inferable_base(self,endorsed=True):
-        """
-        Efficient search for maximal consistent subsets among focal subsets of the full proposition (2**n - 1).
 
-        Algorithm:
-        - Start from the full set of focal propositions.
-        - If its intersection of worlds is non-empty -> it's the unique maximal set.
-        - Else recursively remove propositions one by one.
-        - Keep subsets whose intersection is non-empty and cannot be further extended without becoming inconsistent.
+    def get_inferable_base(self, endorsed=True):
         """
-        full_prop_id = 2**self.concept_framework.n_props - 1
-        if (endorsed):
-            focal = self.endorsed_focal_subsets(full_prop_id)
-            print(focal)
-        else:
-            focal = self.focal_subsets(full_prop_id)
-            print(focal)
+        Compute all maximal consistent subsets among focal propositions.
 
+        - A subset is consistent if the intersection of its worlds is non-empty.
+        - A subset is maximal if no additional focal proposition can be added
+        without making it inconsistent.
+        """
+
+        full_prop_id = 2**(2 ** self.concept_framework.n_props) - 1
+        focal = (self.endorsed_focal_subsets(full_prop_id)
+                if endorsed else self.focal_subsets(full_prop_id))
+
+        # Map each proposition to its world set
         prop_worlds = {pid: set(self.concept_framework.get_proposition_worlds(pid)) for pid in focal}
 
-        results = []
-
+        # Helper function: intersection of worlds for a subset
         def intersection_of(subset):
-            """Compute intersection of worlds for a subset of proposition ids."""
             if not subset:
                 return set()
             inter = set(prop_worlds[next(iter(subset))])
@@ -213,54 +208,44 @@ class EpistemicSpace:
                     break
             return inter
 
-        def search(current_subset):
-            inter = intersection_of(current_subset)
+        results = []
+
+        # Recursive backtracking to explore all consistent combinations
+        def backtrack(remaining, current):
+            inter = intersection_of(current)
             if not inter:
-                return False  # inconsistent
+                return  # inconsistent; backtrack
 
-            # Try to add back any missing focal element to test maximality
+            # Try to extend
             extended = False
-            for pid in focal:
-                if pid not in current_subset:
-                    new_subset = current_subset | {pid}
-                    if intersection_of(new_subset):
-                        # It can be extended; keep searching for a larger consistent set
-                        extended = True
-                        search(new_subset)
+            for pid in list(remaining):
+                if intersection_of(current | {pid}):
+                    extended = True
+                    backtrack({p for p in remaining if p > pid}, current | {pid})
 
-            # If cannot extend further, this subset is maximal
+            # If not extendable further → it's maximal
             if not extended:
-                if current_subset not in results:
-                    results.append(current_subset)
-            return True
+                if current not in results:
+                    results.append(current)
 
-        # Start from the full set; if inconsistent, recursively prune
-        def prune(subset):
-            inter = intersection_of(subset)
-            if inter:
-                # If consistent, check if it's maximal
-                search(subset)
-            else:
-                # Remove one proposition at a time and explore
-                for pid in subset:
-                    smaller = subset - {pid}
-                    if smaller and smaller not in results:
-                        prune(smaller)
+        # Start from each focal proposition
+        sorted_focal = sorted(focal)
+        for i, pid in enumerate(sorted_focal):
+            backtrack(set(sorted_focal[i + 1:]), {pid})
 
-        prune(set(focal))
-
-        # Deduplicate by sorted tuple
-        unique_results = []
-        seen = set()
+        # Deduplicate by intersection: keep largest subset for each intersection
+        unique_by_intersection = {}
         for s in results:
-            t = tuple(sorted(s))
-            if t not in seen:
-                seen.add(t)
-                unique_results.append(s)
+            inter = intersection_of(s)
+            key = frozenset(inter)  # make it hashable
+            if key not in unique_by_intersection or len(s) > len(unique_by_intersection[key]):
+                unique_by_intersection[key] = s
 
-        # Return list of (subset, intersection_of_worlds)
-        return [(s, intersection_of(s)) for s in unique_results]
+        return [(s, intersection_of(s)) for s in unique_by_intersection.values()]
 
+
+
+   
     def get_grounds(self, target_prop_id):
         """
         For a given proposition, find grounds across all inferable bases.
@@ -366,3 +351,36 @@ class EpistemicSpace:
             "by_base": by_base,
             "global": global_strongest
         }
+
+
+    def degree_of_acceptance_in_base(self, target_prop_id):
+        """
+        For each inferable base, compute the degree of acceptance of target_prop_id.
+        Formula:
+            A = 1 - ∏(1 - s_j)
+        where s_j are the strengths (min masses) of all grounds in that base.
+        
+        Returns:
+            List of tuples: (inferable_base, degree_of_acceptance, ground_strengths)
+        """
+        all_grounds = self.get_grounds(target_prop_id)
+        if not all_grounds:
+            return []
+
+        from collections import defaultdict
+        base_strengths = defaultdict(list)
+
+        # Group strengths by inferable base
+        for base, ground, strength in all_grounds:
+            base_strengths[frozenset(base)].append(strength)
+
+        results = []
+        for base, strengths in base_strengths.items():
+            # Compute aggregated degree of acceptance: 1 - Π(1 - s_i)
+            product_term = 1
+            for s in strengths:
+                product_term *= (1 - s)
+            acceptance = 1 - product_term
+            results.append((set(base), acceptance, strengths))
+
+        return results

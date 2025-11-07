@@ -1,0 +1,134 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref} % clickable links
+\usepackage{graphicx} % figures if needed
+\usepackage{enumitem} % nicer lists
+\usepackage{geometry} % margins
+\geometry{margin=1in}
+
+% --- For code blocks ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{gray},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    tabsize=4,
+    showstringspaces=false
+}
+
+% --- Theorem Environments ---
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{example}{Example}[section]
+
+% --- Title ---
+\title{Formal Epistemology Meets Computation:\\
+       Modeling Inferable Beliefs with Python}
+\author{Ali Zolfagharian\thanks{Email: \texttt{ali.zolfagharian@gmail.com}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+% --- Abstract ---
+\begin{abstract}
+This paper develops a framework for formal epistemology using computational tools.
+We present methods to model epistemic states, inferable belief sets, and degrees of acceptance
+for propositions. All computations are implemented in Python, and the library is openly
+available for reproducibility. 
+\end{abstract}
+
+% --- Keywords ---
+\textbf{Keywords:} Formal epistemology, inferable beliefs, Python, computational philosophy
+
+% --- Introduction ---
+\section{Introduction}
+Formal epistemology provides tools to analyze belief, knowledge, and uncertainty.  
+In this work, we integrate computational methods with formal epistemology to allow
+practical simulations and reasoning. 
+
+We also release a Python library implementing these methods, enabling reproducible experiments:
+\begin{itemize}
+    \item GitHub: \url{https://github.com/yourusername/yourlibrary}
+    \item Zenodo DOI (optional): \url{https://doi.org/10.xxxx/zenodo.xxxx}
+\end{itemize}
+
+% --- Preliminaries / Formal Definitions ---
+\section{Formal Definitions}
+\begin{definition}[Epistemic Space]
+An epistemic space is defined as a tuple $(\mathcal{P}, \mathcal{W}, m)$ where
+\begin{itemize}
+    \item $\mathcal{P}$ is a set of propositions,
+    \item $\mathcal{W}$ is a set of possible worlds,
+    \item $m: \mathcal{P} \to [0,1]$ assigns a mass (degree of belief) to each proposition.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Inferable Base]
+A set of propositions $B \subseteq \mathcal{P}$ is an inferable base if the intersection of
+worlds where all propositions in $B$ hold is non-empty, and $B$ is maximal under this property.
+\end{definition}
+
+\begin{example}[Python Implementation]
+We compute inferable bases using the following Python snippet:
+
+\begin{lstlisting}
+es = EpistemicSpace(cf, mass=masses)
+inferable_bases = es.get_inferable_base()
+\end{lstlisting}
+\end{example}
+
+% --- Computational Examples ---
+\section{Computational Experiments}
+We illustrate computations of inferable bases and degree of acceptance with the Python library:
+
+\begin{enumerate}
+    \item Define masses for propositions
+    \item Compute endorsed focal subsets
+    \item Compute inferable bases
+    \item Compute degrees of acceptance using minimal grounds
+\end{enumerate}
+
+\begin{example}[Degree of Acceptance]
+For proposition $P_{13}$:
+\[
+A(P_{13}) = 1 - \prod_{j} (1 - s_j)
+\]
+where $s_j$ are the strengths of minimal grounds in the inferable base.
+\end{example}
+
+% --- Discussion ---
+\section{Discussion}
+Our computational framework allows philosophers to experiment with formal models of
+epistemic states and verify theoretical results. Linking code and theory ensures
+reproducibility and transparency in formal epistemology research.
+
+% --- Conclusion ---
+\section{Conclusion}
+We presented a Python-based approach to formal epistemology. Preprints can be shared
+open-access (PhilArchive/arXiv), while peer-reviewed publication ensures academic validation.
+The library is publicly available to allow replication and further development.
+
+% --- References ---
+\begin{thebibliography}{9}
+\bibitem{philarchive} PhilArchive, \url{https://philarchive.org/}
+\bibitem{arxiv} arXiv, \url{https://arxiv.org/}
+\bibitem{fenstad} Fenstad, J. E., et al. \textit{Formal Epistemology.} Synthese, 2000.
+\bibitem{yourlib} Zolfagharian, A. Python library for Epistemic Space. \url{https://github.com/yourusername/yourlibrary}
+\end{thebibliography}
+
+\end{document}
